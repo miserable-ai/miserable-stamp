@@ -1,0 +1,6 @@
+- id: miserable-stamp
+  name: miserable stamp ids
+  description: Adds missing ids (Python @id markers, StrictDoc MIDs) for miserable.
+  entry: miserable-stamp
+  language: python
+  files: '\.(py|sdoc)$'

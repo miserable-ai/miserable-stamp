@@ -1,2 +1,56 @@
 # miserable-stamp
-Pre-commit hook that adds stable ids to StrictDoc, CML and code markers for miserable
+
+A small [pre-commit](https://pre-commit.com/) hook that gives every traceable item in your
+repository a stable id, so that [miserable](https://miserable.ai) can keep your specification,
+architecture and code linked.
+
+It only ever **adds** ids. It never changes an existing id and never touches anything else in a
+file.
+
+| file | what it adds |
+| --- | --- |
+| Python (`.py`) | `@id c-xxxxxxxxxx` in the docstring of every function or class that carries `@relation(...)` or `@model(...)` but no `@id` yet |
+| StrictDoc (`.sdoc`) | `MID: <32 hex characters>` directly after the tag of every `USER_REQUIREMENT`, `REQUIREMENT`, `ACCEPTANCE_CRITERION` and `ADR` without one |
+
+Support for Context Mapper (`.cml`) `// id:` comments and more languages will follow.
+
+## Use it
+
+Add it to your repository's `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/miserable-ai/miserable-stamp
+    rev: v0.1.0
+    hooks:
+      - id: miserable-stamp
+```
+
+When the hook adds ids, the commit stops and lists the stamped files. Review them, `git add` them
+and commit again. Running it twice changes nothing.
+
+You can also run it by hand:
+
+```sh
+uvx --from git+https://github.com/miserable-ai/miserable-stamp@v0.1.0 miserable-stamp path/to/file.py
+```
+
+The hook is a convenience. If a commit reaches miserable without ids, miserable adds them for you
+on the pull request branch.
+
+## Formats
+
+[docs/tenant-guide.md](docs/tenant-guide.md) describes the markers and ids miserable reads.
+
+## Development
+
+```sh
+uv sync
+uv run pytest
+uv run ruff check . && uv run ruff format --check .
+uv run mypy
+```
+
+## Licence
+
+Apache License 2.0; see [LICENSE](LICENSE).
