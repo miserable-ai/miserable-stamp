@@ -1,6 +1,6 @@
 [project]
 name = "miserable-stamp"
-version = "0.1.0"
+version = "0.2.0"
 description = "Adds stable ids to StrictDoc documents, CML models and code markers for miserable."
 readme = "README.md"
 requires-python = ">=3.12"

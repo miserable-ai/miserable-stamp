@@ -38,3 +38,13 @@ def test_second_run_passes(tmp_path: Path) -> None:
     code.write_text('def a():\n    """@relation(SR-1, role=Implements)"""\n')
     assert main([str(code)]) == 1
     assert main([str(code)]) == 0
+
+
+def test_cml_ids_are_unique_across_the_files_given(tmp_path: Path) -> None:
+    first = tmp_path / "A.cml"
+    first.write_text("// id: ctx-a\nBoundedContext A {\n}\n")
+    second = tmp_path / "Other.cml"
+    second.write_text("BoundedContext A {\n}\n")
+    assert main([str(first), str(second)]) == 1
+    assert "// id: ctx-a-2" in second.read_text()
+    assert first.read_text() == "// id: ctx-a\nBoundedContext A {\n}\n"

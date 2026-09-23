@@ -47,7 +47,20 @@ copy a `MID:` line.**
 
 ## Model ids (Context Mapper)
 
-Every CML element carries `// id: <id>` on the line directly above its declaration, for example
-`// id: agg-sensor-node`. Ids are lower case, start with a kind prefix (`ctx-`, `agg-`, `ent-`,
-`vo-`, `ev-`, `uc-`, …), and are never changed after they are written. Stamping of CML ids will be
-added to `miserable-stamp`.
+Every CML element carries `// id: <id>` in the comment lines directly above its declaration, with no
+blank line in between:
+
+```
+// id: agg-sensor-node
+Aggregate SensorNode {
+```
+
+- An id is a kind prefix and a lower-case name: `dom-` domain, `sub-` subdomain, `ctx-` bounded
+  context, `agg-` aggregate, `ent-` entity, `vo-` value object, `ev-` domain event, `cmd-` command
+  event, `svc-` service, `enum-` enum, `uc-` use case, `us-` user story.
+- Ids are unique across the repository, and **never changed after they are written**, even when the
+  element is renamed. `miserable-stamp` adds missing ids.
+- Use cases and user stories name the requirements they realise with `// from: SR-20, SR-21` in the
+  same comment lines. No other element carries `// from:`.
+- Each `.cml` file imports the files it references, as well as `ContextMap.cml` importing every
+  file.
