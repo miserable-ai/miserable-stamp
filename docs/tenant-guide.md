@@ -1,8 +1,8 @@
 # Tenant guide: markers and ids
 
 This guide describes the text miserable reads from your repositories. Everything miserable does with
-it happens in miserable's cloud. Your repositories need nothing but these formats, and optionally
-the `miserable-stamp` hook.
+it happens in miserable's cloud. Your repositories need nothing but these formats, optionally the
+`miserable-stamp` hook, and in code repositories two CI artifacts (see the last section).
 
 ## Code markers
 
@@ -64,3 +64,38 @@ Aggregate SensorNode {
   same comment lines. No other element carries `// from:`.
 - Each `.cml` file imports the files it references, as well as `ContextMap.cml` importing every
   file.
+
+## Test results and coverage (code repositories)
+
+miserable reads your CI's test results to tell which acceptance criteria your tests verify and
+whether they pass. Your CI runs only your own tests. It uploads two artifacts from one workflow,
+the one `product.yaml` names under `ci.workflow` (default `ci.yml`):
+
+| artifact (default name) | setting in `product.yaml` | content |
+| --- | --- | --- |
+| `miserable-junit` | `ci.junit_artifact` | JUnit XML reports (`*.xml`) |
+| `miserable-exercises` | `ci.exercises_artifact` | the raw coverage.py data file `.coverage`, recorded with per-test contexts |
+
+For Python with pytest:
+
+```yaml
+      - run: pip install pytest pytest-cov
+      - run: pytest --junitxml=junit.xml --cov=. --cov-context=test tests
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: miserable-junit
+          path: junit.xml
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: miserable-exercises
+          path: .coverage
+          include-hidden-files: true
+```
+
+- `--cov-context=test` records which test ran each line. Without it, miserable knows the results
+  but not what each test exercised.
+- `include-hidden-files: true` is needed because `.coverage` starts with a dot.
+- `if: always()` uploads the results when a test fails too: failures are what miserable reports.
+- Upload the raw `.coverage` file, not a report: miserable converts it itself.
