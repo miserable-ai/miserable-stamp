@@ -37,7 +37,8 @@ uvx --from git+https://github.com/miserable-ai/miserable-stamp@v0.2.0 miserable-
 ```
 
 The hook is a convenience. If a commit reaches miserable without ids, miserable adds them for you
-on the pull request branch.
+on the pull request branch, for pull requests from branches of your repository. It cannot push to
+forks, so a pull request from a fork needs the ids committed before it is merged.
 
 ## Formats
 
