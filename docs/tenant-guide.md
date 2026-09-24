@@ -80,7 +80,7 @@ For Python with pytest:
 
 ```yaml
       - run: pip install pytest pytest-cov
-      - run: pytest --junitxml=junit.xml --cov=. --cov-context=test tests
+      - run: python -m pytest --junitxml=junit.xml --cov=. --cov-context=test tests
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -94,6 +94,7 @@ For Python with pytest:
           include-hidden-files: true
 ```
 
+- `python -m pytest` puts the checkout on the import path, so your tests can import your package.
 - `--cov-context=test` records which test ran each line. Without it, miserable knows the results
   but not what each test exercised.
 - `include-hidden-files: true` is needed because `.coverage` starts with a dot.
