@@ -13,13 +13,15 @@ miserable. Everything in this repository, including this file, is visible to any
 
 ## Rules the code must keep
 
-- Only ever **add** ids; never change an existing id or any other line. The only exception is
-  moving a docstring's closing quotes after an inserted `@id` line.
+- Only ever **add** ids; never change an existing id or any other line. The only exceptions are
+  moving a docstring's closing quotes, or a comment block's closing `*/`, after an inserted `@id`
+  line.
 - Idempotent: a second run changes nothing.
 - Deterministic for a seeded `random.Random`, which tests always pass.
-- Files that do not parse are left untouched.
-- `tree-sitter` and `tree-sitter-python` stay pinned to the same versions as `miserable-code`.
-  `miserable-code` depends on this package, and the two must resolve together.
+- Files that do not parse are left untouched. For code, that means a parse tree with an `ERROR`
+  node; `MISSING` nodes alone do not count, since some grammars insert them into valid code.
+- `tree-sitter` and every `tree-sitter-<language>` grammar stay pinned to exactly the same versions
+  as `miserable-code`. `miserable-code` depends on this package, and the two must resolve together.
 
 ## Work
 

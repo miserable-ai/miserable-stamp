@@ -12,6 +12,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from miserable_stamp.cml import existing_ids, stamp_cml
+from miserable_stamp.code import language_for, stamp_code
 from miserable_stamp.python import stamp_python
 from miserable_stamp.sdoc import stamp_sdoc
 
@@ -42,6 +43,9 @@ def _stamp(path: Path, text: str, rng: random.Random, model_ids: set[str]) -> st
         return stamp_sdoc(text, rng)
     if path.suffix == ".cml":
         return stamp_cml(text, model_ids)
+    language = language_for(path.name)
+    if language is not None:
+        return stamp_code(text, language, rng)
     return None
 
 

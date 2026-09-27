@@ -27,6 +27,13 @@ def test_changed_files_are_listed_and_fail_the_hook(
     assert other.read_text() == "@relation(SR-1, role=Implements)\n"
 
 
+def test_code_in_other_languages_is_stamped(tmp_path: Path) -> None:
+    code = tmp_path / "Battery.kt"
+    code.write_text("/** @relation(SR-1, role=Implements) */\nfun a() {}\n")
+    assert main([str(code)]) == 1
+    assert "@id c-" in code.read_text()
+
+
 def test_nothing_to_stamp_passes(tmp_path: Path) -> None:
     code = tmp_path / "a.py"
     code.write_text("def a():\n    pass\n")

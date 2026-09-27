@@ -10,6 +10,7 @@ file.
 | file | what it adds |
 | --- | --- |
 | Python (`.py`) | `@id c-xxxxxxxxxx` in the docstring of every function or class that carries `@relation(...)` or `@model(...)` but no `@id` yet |
+| Kotlin (`.kt`, `.kts`) | `@id c-xxxxxxxxxx` in the KDoc `/** */` above every function, class, object or interface that carries `@relation(...)` or `@model(...)` but no `@id` yet |
 | StrictDoc (`.sdoc`) | `MID: <32 hex characters>` directly after the tag of every `USER_REQUIREMENT`, `REQUIREMENT`, `ACCEPTANCE_CRITERION` and `ADR` without one |
 | Context Mapper (`.cml`) | `// id: <prefix>-<name>` directly above every domain, subdomain, bounded context, aggregate, entity, value object, event, service, enum, use case and user story without one, unique across the repository's models |
 
