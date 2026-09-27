@@ -6,8 +6,20 @@ it happens in miserable's cloud. Your repositories need nothing but these format
 
 ## Code markers
 
-Code declares its links with **markers** in the documentation of a symbol: a Python docstring, a
-JSDoc or KDoc block, Swift `///` lines, or `#` comments directly above a Terraform block.
+Code declares its links with **markers** in the documentation of a symbol. In Python that is the
+docstring. In every other language it is the unbroken run of comments directly above the
+declaration: a blank line ends the run, and a comment inside a body never counts.
+
+| language | files | documentation | symbols that carry markers |
+| --- | --- | --- | --- |
+| Python | `.py` | the docstring | functions, methods, classes |
+| Kotlin | `.kt`, `.kts` | KDoc `/** */` above the declaration and its annotations | `fun`, `class`, `data class`, `enum class`, `object`, `interface`, members of a `companion object` |
+| Java | `.java` | Javadoc `/** */` above the declaration and its annotations | classes, interfaces, enums, records, constructors, methods |
+| TypeScript | `.ts`, `.tsx`, `.mts`, `.cts` | JSDoc `/** */` above the declaration, above `export` when it is exported, and above a method's decorators | function and class declarations, methods, exported `const` arrow functions, and `it(...)` / `test(...)` calls in tests |
+| Swift | `.swift` | a run of `///` lines, or one `/** */` block, above the declaration and its attributes | `func`, `class`, `struct`, `enum`, `protocol`, members of an `extension` |
+| Terraform | `.tf`, `.tftest.hcl` | a run of `#` or `//` lines above the block | top-level `resource`, `module` and `data` blocks; `run` blocks in `.tftest.hcl` files |
+
+The markers:
 
 ```
 @relation(<UID>[, <UID>...], role=Implements)    the symbol implements these software requirements
@@ -16,17 +28,18 @@ JSDoc or KDoc block, Swift `///` lines, or `#` comments directly above a Terrafo
 @id c-<10 characters>                            the symbol's stable identity
 ```
 
-- Put one marker per line. Before a marker there may only be whitespace and the comment syntax `*`,
-  `#` or `///`; after it, nothing.
+- Put one marker per line. Before a marker there may only be whitespace and the comment syntax
+  `/**`, `*`, `///`, `//` or `#`; after it, nothing but the closing `*/` of a block.
 - UIDs name requirements (`SR-20`) and acceptance criteria (`AC-201`). Model ids name elements of
-  your architecture (`agg-sensor-node`).
+  your architecture (`agg-sensor-node`) or of your deployment (`dep-monitoring-api`).
 - `role=Verifies` goes only on tests, and names acceptance criteria, not requirements.
 - Every symbol that carries `@relation` or `@model` needs exactly one `@id`. `miserable-stamp`
-  adds it. **Never edit or copy an `@id` line**: it is how miserable recognises the symbol after a
-  rename or a move.
+  adds it as a new line after the last marker, in the same comment style. When a `/** */` block
+  closes on the marker's line, the closing `*/` moves to the end of the new line. **Never edit or
+  copy an `@id` line**: it is how miserable recognises the symbol after a rename or a move.
 - A marker anywhere else, such as a comment inside a function body, is an error.
 
-Example (Python):
+Python:
 
 ```python
 def check_battery(level: int) -> None:
@@ -36,6 +49,53 @@ def check_battery(level: int) -> None:
     @model(agg-sensor-node, role=Implements)
     @id c-7f3a9k2m1q
     """
+```
+
+Kotlin (Java and TypeScript alike, with their own annotations or decorators below the block):
+
+```kotlin
+/**
+ * Raises the low-battery alert.
+ *
+ * @relation(SR-20, role=Implements)
+ * @id c-7f3a9k2m1q
+ */
+@Throws(IllegalStateException::class)
+fun checkBattery(level: Int) {
+```
+
+TypeScript, exported and in a test:
+
+```typescript
+/**
+ * @relation(SR-20, role=Implements)
+ * @id c-7f3a9k2m1q
+ */
+export function checkBattery(level: number): void {
+
+/**
+ * @relation(AC-201, role=Verifies)
+ * @id c-2b8r0d4w6x
+ */
+it("raises the alert below 20", () => {
+```
+
+Swift:
+
+```swift
+/// Raises the low-battery alert.
+/// @relation(SR-20, role=Implements)
+/// @id c-7f3a9k2m1q
+func checkBattery(level: Int) {
+```
+
+Terraform:
+
+```hcl
+# The monitoring function.
+# @model(dep-monitoring-api, role=Implements)
+# @id c-7f3a9k2m1q
+resource "aws_lambda_function" "monitoring" {
 ```
 
 ## Specification ids (StrictDoc)
@@ -64,6 +124,33 @@ Aggregate SensorNode {
   same comment lines. No other element carries `// from:`.
 - Each `.cml` file imports the files it references, as well as `ContextMap.cml` importing every
   file.
+
+## Deployment ids (Structurizr DSL)
+
+In a deployment architecture written in the Structurizr DSL, every `deploymentNode`,
+`infrastructureNode`, `containerInstance` and `softwareSystemInstance` carries a `miserable.id`
+property in its own `properties` block:
+
+```
+deploymentNode "Amazon Web Services" {
+    properties {
+        "miserable.id" "dep-amazon-web-services"
+    }
+
+    containerInstance api {
+        properties {
+            "miserable.id" "dep-monitoring-api"
+        }
+    }
+}
+```
+
+- An id is `dep-` and a lower-case name: the element's name, and for an instance the name of the
+  container or software system it instantiates.
+- Ids are unique across the repository's `.dsl` files, and **never changed after they are
+  written**, even when the element is renamed. `miserable-stamp` adds missing ids: it creates the
+  `properties` block, and opens the element's braces, where they are missing.
+- Write the workspace in DSL, not as `workspace.json`.
 
 ## Requirement forms (specification repositories)
 
