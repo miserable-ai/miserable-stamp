@@ -38,10 +38,35 @@ class Battery {
     fun d() {}
 }
 """,
+    "Battery.java": """\
+package ai.example;
+
+/**
+ * @model(agg-battery, role=Implements)
+ * @id c-0000000000
+ */
+public class Battery {
+    /**
+     * Two markers.
+     * @relation(SR-2, role=Implements)
+     * @model(svc-b, role=Implements)
+     */
+    @Deprecated
+    public void b() {}
+
+    /**
+     * @relation(SR-3, role=Implements)
+     */
+    public int c() { return 1; }
+
+    void d() {}
+}
+""",
 }
 
 BROKEN = {
     "Battery.kt": "/** @relation(SR-1, role=Implements) */\nfun a( {\n",
+    "Battery.java": "/** @relation(SR-1, role=Implements) */\nclass A { void a() { int = ; } }\n",
 }
 
 

@@ -14,6 +14,7 @@ import re
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 
+import tree_sitter_java
 import tree_sitter_kotlin
 from tree_sitter import Language, Node, Parser
 
@@ -61,7 +62,23 @@ KOTLIN = CodeLanguage(
     anchor=_itself,
 )
 
+JAVA = CodeLanguage(
+    name="java",
+    parser=Parser(Language(tree_sitter_java.language())),
+    comments=frozenset({"line_comment", "block_comment"}),
+    is_symbol=_types(
+        "class_declaration",
+        "interface_declaration",
+        "enum_declaration",
+        "record_declaration",
+        "constructor_declaration",
+        "method_declaration",
+    ),
+    anchor=_itself,
+)
+
 _SUFFIXES = {
+    ".java": JAVA,
     ".kt": KOTLIN,
     ".kts": KOTLIN,
 }
