@@ -16,6 +16,7 @@ from dataclasses import dataclass
 
 import tree_sitter_java
 import tree_sitter_kotlin
+import tree_sitter_swift
 import tree_sitter_typescript
 from tree_sitter import Language, Node, Parser
 
@@ -135,7 +136,28 @@ def _typescript(name: str, language: object) -> CodeLanguage:
 TYPESCRIPT = _typescript("typescript", tree_sitter_typescript.language_typescript())
 TSX = _typescript("tsx", tree_sitter_typescript.language_tsx())
 
+
+def _swift_symbol(node: Node) -> bool:
+    if node.type in ("function_declaration", "protocol_declaration"):
+        return True
+    if node.type == "class_declaration":
+        # class, struct, enum and extension share the node; an extension is no symbol itself,
+        # only its members are.
+        kind = node.child_by_field_name("declaration_kind")
+        return kind is not None and kind.type != "extension"
+    return False
+
+
+SWIFT = CodeLanguage(
+    name="swift",
+    parser=Parser(Language(tree_sitter_swift.language())),
+    comments=frozenset({"comment", "multiline_comment"}),
+    is_symbol=_swift_symbol,
+    anchor=_itself,
+)
+
 _SUFFIXES = {
+    ".swift": SWIFT,
     ".ts": TYPESCRIPT,
     ".mts": TYPESCRIPT,
     ".cts": TYPESCRIPT,

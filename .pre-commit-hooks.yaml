@@ -3,4 +3,4 @@
   description: Adds missing ids (code @id markers, StrictDoc MIDs, CML // id comments) for miserable.
   entry: miserable-stamp
   language: python
-  files: '\.(py|sdoc|cml|kt|kts|java|ts|tsx|mts|cts)$'
+  files: '\.(py|sdoc|cml|kt|kts|java|ts|tsx|mts|cts|swift)$'

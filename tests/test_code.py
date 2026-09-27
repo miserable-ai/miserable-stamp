@@ -85,12 +85,30 @@ export function c(): number {
 
 function d(): void {}
 """,
+    "Battery.swift": """\
+/// @model(agg-battery, role=Implements)
+/// @id c-0000000000
+final class Battery {
+    /// Two markers.
+    /// @relation(SR-2, role=Implements)
+    /// @model(svc-b, role=Implements)
+    func b() {}
+
+    /**
+     * @relation(SR-3, role=Implements)
+     */
+    func c() -> Int { 1 }
+
+    func d() {}
+}
+""",
 }
 
 BROKEN = {
     "Battery.kt": "/** @relation(SR-1, role=Implements) */\nfun a( {\n",
     "Battery.java": "/** @relation(SR-1, role=Implements) */\nclass A { void a() { int = ; } }\n",
     "battery.ts": "/** @relation(SR-1, role=Implements) */\nexport function a() { let = ; }\n",
+    "Battery.swift": "/// @relation(SR-1, role=Implements)\nfunc a() { let = }\n",
 }
 
 
