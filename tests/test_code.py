@@ -62,11 +62,35 @@ public class Battery {
     void d() {}
 }
 """,
+    "battery.ts": """\
+/**
+ * @model(agg-battery, role=Implements)
+ * @id c-0000000000
+ */
+export class Battery {
+  /**
+   * Two markers.
+   * @relation(SR-2, role=Implements)
+   * @model(svc-b, role=Implements)
+   */
+  b(): void {}
+}
+
+/**
+ * @relation(SR-3, role=Implements)
+ */
+export function c(): number {
+  return 1;
+}
+
+function d(): void {}
+""",
 }
 
 BROKEN = {
     "Battery.kt": "/** @relation(SR-1, role=Implements) */\nfun a( {\n",
     "Battery.java": "/** @relation(SR-1, role=Implements) */\nclass A { void a() { int = ; } }\n",
+    "battery.ts": "/** @relation(SR-1, role=Implements) */\nexport function a() { let = ; }\n",
 }
 
 

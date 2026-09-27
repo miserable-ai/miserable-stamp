@@ -16,6 +16,7 @@ from dataclasses import dataclass
 
 import tree_sitter_java
 import tree_sitter_kotlin
+import tree_sitter_typescript
 from tree_sitter import Language, Node, Parser
 
 from miserable_stamp.ids import new_code_id
@@ -77,7 +78,68 @@ JAVA = CodeLanguage(
     anchor=_itself,
 )
 
+_TS_DECLARATIONS = frozenset(
+    {"function_declaration", "class_declaration", "abstract_class_declaration", "method_definition"}
+)
+_TS_FUNCTION_VALUES = frozenset({"arrow_function", "function_expression"})
+_TS_TEST_CALLS = frozenset({"it", "test"})
+
+
+def _ts_symbol(node: Node) -> bool:
+    if node.type in _TS_DECLARATIONS:
+        return True
+    if node.type == "lexical_declaration":
+        # An exported `const name = () => ...`.
+        exported = node.parent is not None and node.parent.type == "export_statement"
+        return exported and any(
+            (value := d.child_by_field_name("value")) is not None
+            and value.type in _TS_FUNCTION_VALUES
+            for d in node.named_children
+            if d.type == "variable_declarator"
+        )
+    if node.type == "expression_statement":
+        # A test call, `it("...", () => ...)` or `test("...", () => ...)`.
+        call = node.named_children[0] if node.named_child_count else None
+        function = call.child_by_field_name("function") if call is not None else None
+        return (
+            call is not None
+            and call.type == "call_expression"
+            and function is not None
+            and function.type == "identifier"
+            and function.text is not None
+            and function.text.decode("utf-8") in _TS_TEST_CALLS
+        )
+    return False
+
+
+def _ts_anchor(node: Node) -> Node:
+    """JSDoc sits above `export`, and above a method's decorators, which the grammar puts beside
+    the method rather than inside it."""
+    if node.parent is not None and node.parent.type == "export_statement":
+        return node.parent
+    while node.prev_sibling is not None and node.prev_sibling.type == "decorator":
+        node = node.prev_sibling
+    return node
+
+
+def _typescript(name: str, language: object) -> CodeLanguage:
+    return CodeLanguage(
+        name=name,
+        parser=Parser(Language(language)),
+        comments=frozenset({"comment"}),
+        is_symbol=_ts_symbol,
+        anchor=_ts_anchor,
+    )
+
+
+TYPESCRIPT = _typescript("typescript", tree_sitter_typescript.language_typescript())
+TSX = _typescript("tsx", tree_sitter_typescript.language_tsx())
+
 _SUFFIXES = {
+    ".ts": TYPESCRIPT,
+    ".mts": TYPESCRIPT,
+    ".cts": TYPESCRIPT,
+    ".tsx": TSX,
     ".java": JAVA,
     ".kt": KOTLIN,
     ".kts": KOTLIN,
