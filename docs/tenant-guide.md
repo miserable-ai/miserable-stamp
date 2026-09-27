@@ -65,6 +65,33 @@ Aggregate SensorNode {
 - Each `.cml` file imports the files it references, as well as `ContextMap.cml` importing every
   file.
 
+## Requirement forms (specification repositories)
+
+miserable can check that each requirement takes its sentence form: a user requirement is a need
+statement ("the clinician needs …"), a software requirement follows EARS ("When …, the pump shall
+…"), and an acceptance criterion verified by test is one Gherkin `Scenario`. You choose how strictly,
+per kind, under `config.spec.forms` in `product.yaml`:
+
+| mode | a new or changed statement | an untouched statement |
+| --- | --- | --- |
+| `off` | not checked | not checked |
+| `warn` (default) | warnings | warnings |
+| `changed` | errors | warnings |
+| `strict` | errors | errors |
+
+```yaml
+config:
+  spec:
+    forms:
+      ur: { mode: changed }
+      sr: { mode: changed }
+      ac: { mode: changed }
+```
+
+When you switch the forms on, start with **`changed`**: every statement you write or edit from then
+on must take its form, while existing statements only warn, so no pull request fails for a statement
+it did not touch. Move to `strict` once the existing statements are in form.
+
 ## Test results and coverage (code repositories)
 
 miserable reads your CI's test results to tell which acceptance criteria your tests verify and
