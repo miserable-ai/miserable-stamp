@@ -17,6 +17,7 @@ file.
 | Terraform (`.tf`, `.tftest.hcl`) | the same in the `#` or `//` comment lines above every top-level `resource`, `module` or `data` block, and every `run` block of a `.tftest.hcl` file |
 | StrictDoc (`.sdoc`) | `MID: <32 hex characters>` directly after the tag of every `USER_REQUIREMENT`, `REQUIREMENT`, `ACCEPTANCE_CRITERION` and `ADR` without one |
 | Context Mapper (`.cml`) | `// id: <prefix>-<name>` directly above every domain, subdomain, bounded context, aggregate, entity, value object, event, service, enum, use case and user story without one, unique across the repository's models |
+| Structurizr DSL (`.dsl`) | `"miserable.id" "dep-<name>"` in the `properties` block of every deployment node, infrastructure node, container instance and software system instance without one, creating the block (and the element's braces) when missing, unique across the repository's `.dsl` files |
 
 Support for more languages will follow.
 

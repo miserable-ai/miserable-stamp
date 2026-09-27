@@ -1,6 +1,6 @@
 - id: miserable-stamp
   name: miserable stamp ids
-  description: Adds missing ids (code @id markers, StrictDoc MIDs, CML // id comments) for miserable.
+  description: Adds missing ids (code @id markers, StrictDoc MIDs, CML // id comments, DSL miserable.id properties) for miserable.
   entry: miserable-stamp
   language: python
-  files: '\.(py|sdoc|cml|kt|kts|java|ts|tsx|mts|cts|swift|tf)$|\.tftest\.hcl$'
+  files: '\.(py|sdoc|cml|kt|kts|java|ts|tsx|mts|cts|swift|tf|dsl)$|\.tftest\.hcl$'

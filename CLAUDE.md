@@ -15,7 +15,8 @@ miserable. Everything in this repository, including this file, is visible to any
 
 - Only ever **add** ids; never change an existing id or any other line. The only exceptions are
   moving a docstring's closing quotes, or a comment block's closing `*/`, after an inserted `@id`
-  line.
+  line, and opening the braces of a Structurizr DSL element that has none (or only `{}`) so that
+  its new `properties` block has somewhere to go.
 - Idempotent: a second run changes nothing.
 - Deterministic for a seeded `random.Random`, which tests always pass.
 - Files that do not parse are left untouched. For code, that means a parse tree with an `ERROR`

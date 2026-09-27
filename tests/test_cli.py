@@ -55,3 +55,21 @@ def test_cml_ids_are_unique_across_the_files_given(tmp_path: Path) -> None:
     assert main([str(first), str(second)]) == 1
     assert "// id: ctx-a-2" in second.read_text()
     assert first.read_text() == "// id: ctx-a\nBoundedContext A {\n}\n"
+
+
+def test_deployment_ids_are_unique_across_the_files_given(tmp_path: Path) -> None:
+    first = tmp_path / "live.dsl"
+    first.write_text(
+        'api = container "API"\n'
+        'deploymentNode "Lambda" {\n'
+        "    properties {\n"
+        '        "miserable.id" "dep-lambda"\n'
+        "    }\n"
+        "}\n"
+    )
+    second = tmp_path / "staging.dsl"
+    second.write_text('deploymentNode "Lambda" {\n    containerInstance api\n}\n')
+    assert main([str(second), str(first)]) == 1
+    text = second.read_text()
+    assert '"miserable.id" "dep-lambda-2"' in text
+    assert '"miserable.id" "dep-api"' in text
