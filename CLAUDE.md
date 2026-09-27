@@ -21,7 +21,9 @@ miserable. Everything in this repository, including this file, is visible to any
 - Deterministic for a seeded `random.Random`, which tests always pass.
 - Files that do not parse are left untouched. For code, that means a node reachable through the
   parse tree's children that is an `ERROR` or a `MISSING` node. A hidden `MISSING` node, which
-  tree-sitter-kotlin inserts into some valid one-liners, is not reachable and does not count.
+  tree-sitter-kotlin inserts into some valid one-liners, is not reachable and does not count. For
+  Swift only an `ERROR` node counts: tree-sitter-swift inserts visible `MISSING` nodes into valid
+  code (`@Option() var x`, `.success(())`).
 - `tree-sitter` and every `tree-sitter-<language>` grammar stay pinned to exactly the same versions
   as `miserable-code`. `miserable-code` depends on this package, and the two must resolve together.
 

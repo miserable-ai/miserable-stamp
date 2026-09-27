@@ -4,7 +4,7 @@ import random
 import re
 from textwrap import dedent
 
-from miserable_stamp.code import language_for, stamp_code
+from miserable_stamp.code import _walk, error_free, language_for, stamp_code
 
 ID = r"@id c-[0-9a-hjkmnp-tv-z]{10}"
 SWIFT = language_for("Battery.swift")
@@ -75,4 +75,50 @@ def test_markers_after_a_blank_line_are_not_stamped() -> None:
 
     func a() {}
     """)
+    assert stamp(src) == src
+
+
+def test_a_marked_protocol_requirement_is_stamped() -> None:
+    after = stamp("""\
+    protocol Probe {
+        /// @relation(SR-3, role=Implements)
+        func read() throws -> Int
+    }
+    """)
+    lines = after.splitlines()
+    assert re.fullmatch(r"    /// " + ID, lines[2])
+    assert lines[3] == "    func read() throws -> Int"
+
+
+# tree-sitter-swift 0.7.3 adds a visible MISSING `!` to valid Swift: after a property wrapper with
+# empty arguments, and in `.success(())`. For Swift only ERROR nodes stop stamping, so such a file
+# is stamped like any other.
+VALID_WITH_MISSING = """\
+struct Options {
+    @Option() var name: String
+
+    /// @relation(SR-4, role=Implements)
+    func finish(completion: (Result<Void, Error>) -> Void) {
+        completion(.success(()))
+    }
+}
+"""
+
+
+def test_a_visible_missing_node_does_not_stop_stamping_swift() -> None:
+    assert SWIFT is not None
+    nodes = list(_walk(SWIFT.parser.parse(VALID_WITH_MISSING.encode()).root_node))
+    assert any(n.is_missing for n in nodes)
+    assert not any(n.is_error for n in nodes)
+    assert error_free(VALID_WITH_MISSING, SWIFT)
+    after = stamp(VALID_WITH_MISSING)
+    assert re.search(r"SR-4, role=Implements\)\n    /// " + ID + r"\n    func finish", after)
+    assert error_free(after, SWIFT)
+    assert stamp(after, seed=2) == after
+
+
+def test_an_error_node_still_stops_stamping_swift() -> None:
+    src = "/// @relation(SR-1, role=Implements)\nfunc a( {\n"
+    assert SWIFT is not None
+    assert not error_free(src, SWIFT)
     assert stamp(src) == src

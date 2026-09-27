@@ -199,12 +199,12 @@ def test_files_that_do_not_parse_are_left_alone(path: str) -> None:
     assert stamp(path, BROKEN[path]) == BROKEN[path]
 
 
-# A visible MISSING node is a token the file lacks: such a file does not parse either.
+# A visible MISSING node is a token the file lacks: such a file does not parse either. Swift is the
+# exception (`test_swift.py`): its grammar adds visible MISSING nodes to valid code.
 MISSING_ONLY = {
     "Battery.kt": "/** @relation(SR-1, role=Implements) */\nfun a() { f(1 }\n",
     "Battery.java": "/** @relation(SR-1, role=Implements) */\nclass A { void a() { int x = 1 } }\n",
     "battery.ts": "/** @relation(SR-1, role=Implements) */\nexport function a() { f(1; }\n",
-    "Battery.swift": "/// @relation(SR-1, role=Implements)\nfunc a() { let x = (1 }\n",
     "main.tf": '# @relation(SR-1, role=Implements)\nresource "a" "b" {\n',
 }
 

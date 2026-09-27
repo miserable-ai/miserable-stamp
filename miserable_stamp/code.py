@@ -6,7 +6,9 @@ comment or from the declaration. A symbol whose documentation carries `@relation
 `@model(...)` but no `@id` gets `@id c-...` on a new line after the last marker, in the marker's
 comment style: after a `///`, `//` or `#` line comes another such line; inside a `/** */` block
 comes a line with the block's leading `*`. When the block closes on the marker's line, the closing
-`*/` moves to the end of the new line. Files with syntax errors are left untouched.
+`*/` moves to the end of the new line. Files with syntax errors are left untouched: a node reachable
+through the parse tree's children is an ERROR node, or a MISSING node in every language but Swift,
+whose grammar adds visible MISSING nodes to valid code.
 """
 
 import random
@@ -38,6 +40,9 @@ class CodeLanguage:
     comments: frozenset[str]  # node types of comments
     is_symbol: Callable[[Node], bool]
     anchor: Callable[[Node], Node]  # the node the documentation sits above
+    # Whether a MISSING node alone means the file does not parse; False for a grammar that adds
+    # visible MISSING nodes to valid code.
+    missing_is_error: bool = True
 
 
 @dataclass(frozen=True)
@@ -141,6 +146,8 @@ TSX = _typescript("tsx", tree_sitter_typescript.language_tsx())
 def _swift_symbol(node: Node) -> bool:
     if node.type in ("function_declaration", "protocol_declaration"):
         return True
+    if node.type == "protocol_function_declaration":
+        return True  # a protocol's function requirement
     if node.type == "class_declaration":
         # class, struct, enum and extension share the node; an extension is no symbol itself,
         # only its members are.
@@ -155,6 +162,9 @@ SWIFT = CodeLanguage(
     comments=frozenset({"comment", "multiline_comment"}),
     is_symbol=_swift_symbol,
     anchor=_itself,
+    # tree-sitter-swift 0.7.3 inserts a visible MISSING `!` into valid code: after a property
+    # wrapper with empty arguments (`@Option() var x`) and in `.success(())`.
+    missing_is_error=False,
 )
 
 
@@ -215,20 +225,21 @@ def language_for(path: str) -> CodeLanguage | None:
 
 
 def error_free(text: str, language: CodeLanguage) -> bool:
-    """Whether `text` parses: no node reachable through the tree's children is an ERROR or a
-    MISSING node. A hidden MISSING node, which tree-sitter-kotlin reports for some valid
-    one-liners, is not reachable and does not count."""
-    return _parses(language.parser.parse(text.encode("utf-8")).root_node)
+    """Whether `text` parses: no node reachable through the tree's children is an ERROR node or,
+    unless the language says otherwise (Swift), a MISSING node. A hidden MISSING node, which
+    tree-sitter-kotlin reports for some valid one-liners, is not reachable and does not count."""
+    return _parses(language.parser.parse(text.encode("utf-8")).root_node, language)
 
 
-def _parses(root: Node) -> bool:
-    return not any(n.is_error or n.is_missing for n in _walk(root))
+def _parses(root: Node, language: CodeLanguage) -> bool:
+    missing = language.missing_is_error
+    return not any(n.is_error or (missing and n.is_missing) for n in _walk(root))
 
 
 def stamp_code(text: str, language: CodeLanguage, rng: random.Random) -> str:
     src = text.encode("utf-8")
     root = language.parser.parse(src).root_node
-    if not _parses(root):
+    if not _parses(root, language):
         return text
     comments = sorted(
         (n for n in _walk(root) if n.type in language.comments), key=lambda n: n.start_byte
