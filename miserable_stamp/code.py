@@ -215,16 +215,20 @@ def language_for(path: str) -> CodeLanguage | None:
 
 
 def error_free(text: str, language: CodeLanguage) -> bool:
-    """Whether `text` parses without ERROR nodes. MISSING nodes alone do not count: some grammars
-    insert them into valid code."""
-    root = language.parser.parse(text.encode("utf-8")).root_node
-    return not root.has_error or not any(n.is_error for n in _walk(root))
+    """Whether `text` parses: no node reachable through the tree's children is an ERROR or a
+    MISSING node. A hidden MISSING node, which tree-sitter-kotlin reports for some valid
+    one-liners, is not reachable and does not count."""
+    return _parses(language.parser.parse(text.encode("utf-8")).root_node)
+
+
+def _parses(root: Node) -> bool:
+    return not any(n.is_error or n.is_missing for n in _walk(root))
 
 
 def stamp_code(text: str, language: CodeLanguage, rng: random.Random) -> str:
     src = text.encode("utf-8")
     root = language.parser.parse(src).root_node
-    if root.has_error and any(n.is_error for n in _walk(root)):
+    if not _parses(root):
         return text
     comments = sorted(
         (n for n in _walk(root) if n.type in language.comments), key=lambda n: n.start_byte

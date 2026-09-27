@@ -128,8 +128,9 @@ def test_markers_inside_a_body_are_not_stamped() -> None:
     assert stamp(src) == src
 
 
-def test_missing_nodes_alone_do_not_stop_stamping() -> None:
-    # tree-sitter-kotlin 1.1.0 reports a MISSING node for this valid one-liner.
+def test_a_hidden_missing_node_does_not_stop_stamping() -> None:
+    # tree-sitter-kotlin 1.1.0 reports a hidden MISSING node for this valid one-liner, which no
+    # walk through the tree's children reaches.
     after = stamp("""\
     /** @model(svc-alerts, role=Implements) */
     interface Alerts { fun raise(): Int }

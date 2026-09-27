@@ -6,7 +6,7 @@ import re
 
 import pytest
 
-from miserable_stamp.code import error_free, language_for, stamp_code
+from miserable_stamp.code import _walk, error_free, language_for, stamp_code
 
 ID = re.compile(r"@id (c-[0-9a-hjkmnp-tv-z]{10})")
 
@@ -197,6 +197,27 @@ def test_crlf_is_preserved(path: str) -> None:
 @pytest.mark.parametrize("path", BROKEN)
 def test_files_that_do_not_parse_are_left_alone(path: str) -> None:
     assert stamp(path, BROKEN[path]) == BROKEN[path]
+
+
+# A visible MISSING node is a token the file lacks: such a file does not parse either.
+MISSING_ONLY = {
+    "Battery.kt": "/** @relation(SR-1, role=Implements) */\nfun a() { f(1 }\n",
+    "Battery.java": "/** @relation(SR-1, role=Implements) */\nclass A { void a() { int x = 1 } }\n",
+    "battery.ts": "/** @relation(SR-1, role=Implements) */\nexport function a() { f(1; }\n",
+    "Battery.swift": "/// @relation(SR-1, role=Implements)\nfunc a() { let x = (1 }\n",
+    "main.tf": '# @relation(SR-1, role=Implements)\nresource "a" "b" {\n',
+}
+
+
+@pytest.mark.parametrize("path", MISSING_ONLY)
+def test_files_with_only_a_missing_node_are_left_alone(path: str) -> None:
+    language = language_for(path)
+    assert language is not None
+    nodes = list(_walk(language.parser.parse(MISSING_ONLY[path].encode()).root_node))
+    assert not any(n.is_error for n in nodes)
+    assert any(n.is_missing for n in nodes)
+    assert not error_free(MISSING_ONLY[path], language)
+    assert stamp(path, MISSING_ONLY[path]) == MISSING_ONLY[path]
 
 
 def test_other_files_have_no_code_language() -> None:

@@ -19,8 +19,9 @@ miserable. Everything in this repository, including this file, is visible to any
   its new `properties` block has somewhere to go.
 - Idempotent: a second run changes nothing.
 - Deterministic for a seeded `random.Random`, which tests always pass.
-- Files that do not parse are left untouched. For code, that means a parse tree with an `ERROR`
-  node; `MISSING` nodes alone do not count, since some grammars insert them into valid code.
+- Files that do not parse are left untouched. For code, that means a node reachable through the
+  parse tree's children that is an `ERROR` or a `MISSING` node. A hidden `MISSING` node, which
+  tree-sitter-kotlin inserts into some valid one-liners, is not reachable and does not count.
 - `tree-sitter` and every `tree-sitter-<language>` grammar stay pinned to exactly the same versions
   as `miserable-code`. `miserable-code` depends on this package, and the two must resolve together.
 
