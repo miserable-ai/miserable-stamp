@@ -14,6 +14,7 @@ file.
 | Java (`.java`) | the same in the Javadoc `/** */` above every class, interface, enum, record, constructor or method |
 | TypeScript (`.ts`, `.tsx`, `.mts`, `.cts`) | the same in the JSDoc `/** */` above every function or class declaration, method, exported `const` arrow function, and `it(...)` or `test(...)` call; above `export` when the declaration is exported |
 | Swift (`.swift`) | the same in the `///` lines or `/** */` block above every `func`, `class`, `struct`, `enum` or `protocol`, and every member of an `extension` |
+| Terraform (`.tf`, `.tftest.hcl`) | the same in the `#` or `//` comment lines above every top-level `resource`, `module` or `data` block, and every `run` block of a `.tftest.hcl` file |
 | StrictDoc (`.sdoc`) | `MID: <32 hex characters>` directly after the tag of every `USER_REQUIREMENT`, `REQUIREMENT`, `ACCEPTANCE_CRITERION` and `ADR` without one |
 | Context Mapper (`.cml`) | `// id: <prefix>-<name>` directly above every domain, subdomain, bounded context, aggregate, entity, value object, event, service, enum, use case and user story without one, unique across the repository's models |
 

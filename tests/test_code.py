@@ -102,6 +102,29 @@ final class Battery {
     func d() {}
 }
 """,
+    "main.tf": """\
+# @model(dep-bucket, role=Implements)
+# @id c-0000000000
+resource "aws_s3_bucket" "b" {
+  bucket = "b"
+}
+
+# Two markers.
+# @relation(SR-2, role=Implements)
+// @model(dep-alerts, role=Implements)
+module "alerts" {
+  source = "./alerts"
+}
+
+/*
+ * @relation(SR-3, role=Implements)
+ */
+data "aws_region" "current" {}
+
+locals {
+  d = 1
+}
+""",
 }
 
 BROKEN = {
@@ -109,6 +132,7 @@ BROKEN = {
     "Battery.java": "/** @relation(SR-1, role=Implements) */\nclass A { void a() { int = ; } }\n",
     "battery.ts": "/** @relation(SR-1, role=Implements) */\nexport function a() { let = ; }\n",
     "Battery.swift": "/// @relation(SR-1, role=Implements)\nfunc a() { let = }\n",
+    "main.tf": '# @relation(SR-1, role=Implements)\nresource "a" "b" {\n  = 1\n}\n',
 }
 
 

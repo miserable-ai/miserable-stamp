@@ -14,6 +14,7 @@ import re
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 
+import tree_sitter_hcl
 import tree_sitter_java
 import tree_sitter_kotlin
 import tree_sitter_swift
@@ -156,7 +157,43 @@ SWIFT = CodeLanguage(
     anchor=_itself,
 )
 
+
+def _hcl_blocks(*kinds: str) -> Callable[[Node], bool]:
+    """Top-level blocks whose type is one of `kinds`."""
+    wanted = frozenset(kinds)
+
+    def is_symbol(node: Node) -> bool:
+        body = node.parent
+        return (
+            node.type == "block"
+            and body is not None
+            and body.parent is not None
+            and body.parent.type == "config_file"
+            and node.named_child_count > 0
+            and node.named_children[0].type == "identifier"
+            and node.named_children[0].text is not None
+            and node.named_children[0].text.decode("utf-8") in wanted
+        )
+
+    return is_symbol
+
+
+def _hcl(name: str, *kinds: str) -> CodeLanguage:
+    return CodeLanguage(
+        name=name,
+        parser=Parser(Language(tree_sitter_hcl.language())),
+        comments=frozenset({"comment"}),
+        is_symbol=_hcl_blocks(*kinds),
+        anchor=_itself,
+    )
+
+
+HCL = _hcl("hcl", "resource", "module", "data")
+TERRAFORM_TEST = _hcl("terraform test", "run")
+
 _SUFFIXES = {
+    ".tftest.hcl": TERRAFORM_TEST,
+    ".tf": HCL,
     ".swift": SWIFT,
     ".ts": TYPESCRIPT,
     ".mts": TYPESCRIPT,
