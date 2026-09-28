@@ -43,6 +43,8 @@ class CodeLanguage:
     # Whether a MISSING node alone means the file does not parse; False for a grammar that adds
     # visible MISSING nodes to valid code.
     missing_is_error: bool = True
+    # Whether a symbol is documented only by a `/** */` block, not by a run of line comments.
+    needs_block: Callable[[Node], bool] = lambda node: False
 
 
 @dataclass(frozen=True)
@@ -86,15 +88,31 @@ JAVA = CodeLanguage(
 )
 
 _TS_DECLARATIONS = frozenset(
-    {"function_declaration", "class_declaration", "abstract_class_declaration", "method_definition"}
+    {
+        "function_declaration",
+        "function_signature",
+        "class_declaration",
+        "abstract_class_declaration",
+    }
 )
+# Methods, and the overload signatures of a class; not the members of an interface.
+_TS_MEMBERS = frozenset({"method_definition", "method_signature", "abstract_method_signature"})
 _TS_FUNCTION_VALUES = frozenset({"arrow_function", "function_expression"})
-_TS_TEST_CALLS = frozenset({"it", "test"})
+# `it` and `test`, their `.only` and `.skip` forms, and each of those with `.each` (a table as
+# arguments, `()`, or as a tagged template).
+_TS_TEST_CALLS = frozenset(
+    f"{base}{modifier}{each}"
+    for base in ("it", "test")
+    for modifier in ("", ".only", ".skip")
+    for each in ("", ".each()")
+)
 
 
 def _ts_symbol(node: Node) -> bool:
     if node.type in _TS_DECLARATIONS:
         return True
+    if node.type in _TS_MEMBERS:
+        return node.parent is not None and node.parent.type == "class_body"
     if node.type == "lexical_declaration":
         # An exported `const name = () => ...`.
         exported = node.parent is not None and node.parent.type == "export_statement"
@@ -104,19 +122,40 @@ def _ts_symbol(node: Node) -> bool:
             for d in node.named_children
             if d.type == "variable_declarator"
         )
-    if node.type == "expression_statement":
-        # A test call, `it("...", () => ...)` or `test("...", () => ...)`.
-        call = node.named_children[0] if node.named_child_count else None
-        function = call.child_by_field_name("function") if call is not None else None
-        return (
-            call is not None
-            and call.type == "call_expression"
-            and function is not None
-            and function.type == "identifier"
-            and function.text is not None
-            and function.text.decode("utf-8") in _TS_TEST_CALLS
-        )
-    return False
+    return _ts_test_call(node)
+
+
+def _ts_test_call(node: Node) -> bool:
+    """A test call statement, `it("...", () => ...)`, `test.skip(...)`, `test.each(table)(...)`,
+    with a function after its title."""
+    if node.type != "expression_statement" or not node.named_child_count:
+        return False
+    call = node.named_children[0]
+    if call.type != "call_expression" or _call_path(call.child_by_field_name("function")) not in (
+        _TS_TEST_CALLS
+    ):
+        return False
+    arguments = call.child_by_field_name("arguments")
+    values = [] if arguments is None else arguments.named_children[1:]
+    return any(v.type in _TS_FUNCTION_VALUES for v in values)
+
+
+def _call_path(node: Node | None) -> str | None:
+    """A callee as a dotted path, a call in it written `()`: `it`, `test.skip`, `test.each()`."""
+    if node is None:
+        return None
+    if node.type == "identifier":
+        return node.text.decode("utf-8") if node.text is not None else None
+    if node.type == "member_expression":
+        base = _call_path(node.child_by_field_name("object"))
+        member = node.child_by_field_name("property")
+        if base is None or member is None or member.text is None:
+            return None
+        return f"{base}.{member.text.decode('utf-8')}"
+    if node.type == "call_expression":
+        inner = _call_path(node.child_by_field_name("function"))
+        return None if inner is None else f"{inner}()"
+    return None
 
 
 def _ts_anchor(node: Node) -> Node:
@@ -136,6 +175,7 @@ def _typescript(name: str, language: object) -> CodeLanguage:
         comments=frozenset({"comment"}),
         is_symbol=_ts_symbol,
         anchor=_ts_anchor,
+        needs_block=_ts_test_call,  # a test call is documented only by a JSDoc block
     )
 
 
@@ -244,11 +284,17 @@ def stamp_code(text: str, language: CodeLanguage, rng: random.Random) -> str:
     comments = sorted(
         (n for n in _walk(root) if n.type in language.comments), key=lambda n: n.start_byte
     )
-    anchors = {language.anchor(n).start_byte for n in _walk(root) if language.is_symbol(n)}
+    anchors: dict[int, bool] = {}
+    for node in _walk(root):
+        if language.is_symbol(node):
+            start = language.anchor(node).start_byte
+            anchors[start] = anchors.get(start, False) or language.needs_block(node)
     edits = {
         e.line: e
-        for start in anchors
-        if (e := _plan(_documentation(comments, start, src), src)) is not None
+        for start, needs_block in anchors.items()
+        if (run := _documentation(comments, start, src))
+        and (not needs_block or any(_is_block(c, src) for c in run))
+        and (e := _plan(run, src)) is not None
     }
     taken = {m.group(1) for m in _ID_MARKER.finditer(text)}
     lines = _lines(text)
@@ -267,6 +313,10 @@ def stamp_code(text: str, language: CodeLanguage, rng: random.Random) -> str:
             lines[edit.line] = before + newline
             lines.insert(edit.line + 1, f"{edit.prefix}@id {new_id} {after}")
     return "".join(lines)
+
+
+def _is_block(comment: Node, src: bytes) -> bool:
+    return src[comment.start_byte : comment.end_byte].startswith(b"/**")
 
 
 def _walk(root: Node) -> Iterator[Node]:

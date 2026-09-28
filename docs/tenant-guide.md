@@ -15,7 +15,7 @@ declaration: a blank line ends the run, and a comment inside a body never counts
 | Python | `.py` | the docstring | functions, methods, classes |
 | Kotlin | `.kt`, `.kts` | KDoc `/** */` above the declaration and its annotations | `fun`, `class`, `data class`, `enum class`, `object`, `interface`, members of a `companion object` |
 | Java | `.java` | Javadoc `/** */` above the declaration and its annotations | classes, interfaces, enums, records, constructors, methods |
-| TypeScript | `.ts`, `.tsx`, `.mts`, `.cts` | JSDoc `/** */` above the declaration, above `export` when it is exported, and above a method's decorators | function and class declarations, methods, exported `const` arrow functions, and `it(...)` / `test(...)` calls in tests |
+| TypeScript | `.ts`, `.tsx`, `.mts`, `.cts` | JSDoc `/** */` above the declaration, above `export` when it is exported, and above a method's decorators; a test call only by a JSDoc block | function and class declarations and overload signatures, methods and a class's overload signatures, exported `const` arrow functions, and `it(...)` / `test(...)` calls with a callback in tests, also as `.only`, `.skip` and `.each` |
 | Swift | `.swift` | a run of `///` lines, or one `/** */` block, above the declaration and its attributes | `func`, `class`, `struct`, `enum`, `protocol`, members of an `extension` |
 | Terraform | `.tf`, `.tftest.hcl` | a run of `#` or `//` lines above the block | top-level `resource`, `module` and `data` blocks; `run` blocks in `.tftest.hcl` files |
 
@@ -214,3 +214,14 @@ For Python with pytest:
 - `include-hidden-files: true` is needed because `.coverage` starts with a dot.
 - `if: always()` uploads the results when a test fails too: failures are what miserable reports.
 - Upload the raw `.coverage` file, not a report: miserable converts it itself.
+
+For TypeScript, upload the JUnit XML of your test runner as `miserable-junit` (there is no coverage
+artifact):
+
+- **Vitest:** `vitest run --reporter=junit --outputFile=junit.xml`, run with the repository's root
+  as Vitest's root, so that each case's file is the file's path in the repository.
+- **Jest:** the `jest-junit` reporter, configured with `classNameTemplate: "{classname}"`,
+  `titleTemplate: "{title}"`, `ancestorSeparator: " > "` and `addFileAttribute: "true"`, with Jest's
+  `rootDir` at the repository's root. Its default names cannot be read.
+- A `test.each` case matches its test by the title as written, placeholders (`%i`, `$level`)
+  included.

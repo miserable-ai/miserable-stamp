@@ -94,3 +94,73 @@ def test_tsx_components_are_stamped() -> None:
         path="gauge.tsx",
     )
     assert len(re.findall(ID, after)) == 1
+
+
+def test_overload_signatures_are_stamped() -> None:
+    after = stamp("""\
+    /** @relation(SR-5, role=Implements) */
+    export function charge(level: number): void;
+    /** @relation(SR-6, role=Implements) */
+    export function charge(level: string): void;
+    export function charge(level: unknown): void {}
+
+    export abstract class Cell {
+      /** @relation(SR-7, role=Implements) */
+      read(): number;
+      /** @relation(SR-8, role=Implements) */
+      abstract reset(): void;
+      read(): number {
+        return 1;
+      }
+    }
+    """)
+    assert len(re.findall(ID, after)) == 4
+
+
+def test_interface_members_are_not_stamped() -> None:
+    src = """\
+    export interface Cell {
+      /** @relation(SR-9, role=Implements) */
+      read(): number;
+    }
+    """
+    assert stamp(src) == dedent(src)
+
+
+def test_only_skip_and_each_test_calls_are_stamped() -> None:
+    after = stamp(
+        """\
+        describe.each([1])("unit %i", () => {
+          /** @relation(AC-4, role=Verifies) */
+          it.only("alerts", () => {});
+
+          /** @relation(AC-5, role=Verifies) */
+          test.skip("stays quiet", () => {});
+
+          /** @relation(AC-6, role=Verifies) */
+          test.each([5, 10])("level %i is low", (level) => {});
+
+          /** @relation(AC-7, role=Verifies) */
+          it.each`
+            level
+            ${5}
+          `("level $level", ({ level }) => {});
+        });
+        """,
+        path="battery.test.ts",
+    )
+    assert len(re.findall(ID, after)) == 4
+
+
+def test_a_test_call_needs_a_jsdoc_block_and_a_callback() -> None:
+    src = """\
+    // @relation(AC-8, role=Verifies)
+    it("line comments are not a test's documentation", () => {});
+
+    /** @relation(AC-9, role=Verifies) */
+    it("no callback", check);
+
+    /** @relation(AC-10, role=Verifies) */
+    it.todo("later");
+    """
+    assert stamp(src, path="battery.test.ts") == dedent(src)
