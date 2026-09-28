@@ -13,13 +13,19 @@ miserable. Everything in this repository, including this file, is visible to any
 
 ## Rules the code must keep
 
-- Only ever **add** ids; never change an existing id or any other line. The only exception is
-  moving a docstring's closing quotes after an inserted `@id` line.
+- Only ever **add** ids; never change an existing id or any other line. The only exceptions are
+  moving a docstring's closing quotes, or a comment block's closing `*/`, after an inserted `@id`
+  line, and opening the braces of a Structurizr DSL element that has none (or only `{}`) so that
+  its new `properties` block has somewhere to go.
 - Idempotent: a second run changes nothing.
 - Deterministic for a seeded `random.Random`, which tests always pass.
-- Files that do not parse are left untouched.
-- `tree-sitter` and `tree-sitter-python` stay pinned to the same versions as `miserable-code`.
-  `miserable-code` depends on this package, and the two must resolve together.
+- Files that do not parse are left untouched. For code, that means a node reachable through the
+  parse tree's children that is an `ERROR` or a `MISSING` node. A hidden `MISSING` node, which
+  tree-sitter-kotlin inserts into some valid one-liners, is not reachable and does not count. For
+  Swift only an `ERROR` node counts: tree-sitter-swift inserts visible `MISSING` nodes into valid
+  code (`@Option() var x`, `.success(())`).
+- `tree-sitter` and every `tree-sitter-<language>` grammar stay pinned to exactly the same versions
+  as `miserable-code`. `miserable-code` depends on this package, and the two must resolve together.
 
 ## Work
 

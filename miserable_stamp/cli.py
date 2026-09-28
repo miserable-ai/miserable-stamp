@@ -11,7 +11,9 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from miserable_stamp import dsl
 from miserable_stamp.cml import existing_ids, stamp_cml
+from miserable_stamp.code import language_for, stamp_code
 from miserable_stamp.python import stamp_python
 from miserable_stamp.sdoc import stamp_sdoc
 
@@ -19,6 +21,7 @@ from miserable_stamp.sdoc import stamp_sdoc
 def main(paths: Sequence[str], rng: random.Random | None = None) -> int:
     rng = rng or random.SystemRandom()
     model_ids = _model_ids([Path(p) for p in paths])
+    deployment = _Deployment([Path(p) for p in paths])
     changed = 0
     for name in paths:
         path = Path(name)
@@ -26,7 +29,7 @@ def main(paths: Sequence[str], rng: random.Random | None = None) -> int:
             continue
         with path.open(encoding="utf-8", newline="") as handle:
             before = handle.read()
-        after = _stamp(path, before, rng, model_ids)
+        after = _stamp(path, before, rng, model_ids, deployment)
         if after is not None and after != before:
             with path.open("w", encoding="utf-8", newline="") as handle:
                 handle.write(after)
@@ -35,30 +38,54 @@ def main(paths: Sequence[str], rng: random.Random | None = None) -> int:
     return 1 if changed else 0
 
 
-def _stamp(path: Path, text: str, rng: random.Random, model_ids: set[str]) -> str | None:
+def _stamp(
+    path: Path, text: str, rng: random.Random, model_ids: set[str], deployment: "_Deployment"
+) -> str | None:
     if path.suffix == ".py":
         return stamp_python(text, rng)
     if path.suffix == ".sdoc":
         return stamp_sdoc(text, rng)
     if path.suffix == ".cml":
         return stamp_cml(text, model_ids)
+    if path.suffix == ".dsl":
+        return dsl.stamp_dsl(text, deployment.ids, deployment.names)
+    language = language_for(path.name)
+    if language is not None:
+        return stamp_code(text, language, rng)
     return None
 
 
 def _model_ids(paths: list[Path]) -> set[str]:
-    """Ids already used by CML files: every tracked model file of the repository, plus those given
-    (pre-commit passes only staged files, but ids must be unique across the whole model)."""
-    files = {p for p in paths if p.suffix == ".cml" and p.is_file()}
+    """Ids already used by CML files (ids must be unique across the whole model)."""
+    ids: set[str] = set()
+    for text in _repository_texts(paths, ".cml"):
+        ids |= existing_ids(text)
+    return ids
+
+
+class _Deployment:
+    """What the repository's Structurizr DSL files hold: the `miserable.id` values in use, which
+    must stay unique across them, and the names of the elements their identifiers define."""
+
+    def __init__(self, paths: list[Path]) -> None:
+        self.ids: set[str] = set()
+        self.names: dict[str, str] = {}
+        for text in _repository_texts(paths, ".dsl"):
+            self.ids |= dsl.existing_ids(text)
+            for identifier, name in dsl.element_names(text).items():
+                self.names.setdefault(identifier, name)
+
+
+def _repository_texts(paths: list[Path], suffix: str) -> list[str]:
+    """The text of every tracked file of the repository with `suffix`, plus the files given with
+    it (pre-commit passes only staged files), in a stable order."""
+    files = {p for p in paths if p.suffix == suffix and p.is_file()}
     result = subprocess.run(
-        ["git", "ls-files", "-z", "--", "*.cml"], capture_output=True, check=False
+        ["git", "ls-files", "-z", "--", f"*{suffix}"], capture_output=True, check=False
     )
     if result.returncode == 0:
         files |= {Path(p) for p in result.stdout.decode().split("\0") if p}
-    ids: set[str] = set()
-    for path in files:
-        if path.is_file():
-            ids |= existing_ids(path.read_text(encoding="utf-8"))
-    return ids
+    return [p.read_text(encoding="utf-8") for p in sorted(files) if p.is_file()]
 
 
 def main_entry() -> None:

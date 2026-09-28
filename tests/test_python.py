@@ -138,6 +138,12 @@ def test_files_that_do_not_parse_are_left_alone() -> None:
     assert stamp_python(src, random.Random(1)) == src
 
 
+def test_a_missing_token_is_a_file_that_does_not_parse() -> None:
+    # `class A(B:` parses with a MISSING `)` and no ERROR node.
+    text = 'def f():\n    """@relation(SR-1, role=Implements)"""\n\n\nclass A(B:\n    pass\n'
+    assert stamp_python(text, random.Random(1)) == text
+
+
 def test_seeded_stamping_is_deterministic() -> None:
     src = 'def a():\n    """@relation(SR-1, role=Implements)"""\n'
     assert stamp_python(src, random.Random(4)) == stamp_python(src, random.Random(4))

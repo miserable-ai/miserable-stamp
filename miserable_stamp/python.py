@@ -33,7 +33,7 @@ class _Edit:
 def stamp_python(text: str, rng: random.Random) -> str:
     src = text.encode("utf-8")
     tree = _PARSER.parse(src)
-    if tree.root_node.has_error:
+    if _broken(tree.root_node):
         return text
     taken = {m.group(1) for m in _ID_MARKER.finditer(text)}
     edits = [e for d in _docstrings(tree.root_node) if (e := _plan(d, src)) is not None]
@@ -109,3 +109,14 @@ def _comment_prefix(text: str) -> str:
             rest = text[len(prefix) :]
             return prefix + rest[: len(rest) - len(rest.lstrip(" \t"))]
     return ""
+
+
+def _broken(root: Node) -> bool:
+    """Whether a node reachable through the tree's children is an ERROR or a MISSING node."""
+    stack = [root]
+    while stack:
+        node = stack.pop()
+        if node.is_error or node.is_missing:
+            return True
+        stack.extend(node.children)
+    return False
