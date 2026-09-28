@@ -151,6 +151,10 @@ deploymentNode "Amazon Web Services" {
   written**, even when the element is renamed. `miserable-stamp` adds missing ids: it creates the
   `properties` block, and opens the element's braces, where they are missing.
 - Write the workspace in DSL, not as `workspace.json`.
+- Keep the workspace in a directory of its own, for example `deployment/workspace.dsl`, and name
+  that root file in `product.yaml` as the deployment's `workspace` (default `workspace.dsl`). Only
+  the root and the files its `!include`s reach are read; an `!include` must be a relative path
+  inside that directory, without `..`.
 
 ## Requirement forms (specification repositories)
 
