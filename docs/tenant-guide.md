@@ -117,7 +117,9 @@ Aggregate SensorNode {
 
 - An id is a kind prefix and a lower-case name: `dom-` domain, `sub-` subdomain, `ctx-` bounded
   context, `agg-` aggregate, `ent-` entity, `vo-` value object, `ev-` domain event, `cmd-` command
-  event, `svc-` service, `enum-` enum, `uc-` use case, `us-` user story.
+  event, `svc-` service, `repo-` repository (declared in an aggregate root; its id leaves out the
+  name's `Repository` suffix, so `LandingRecordRepository` is `repo-landing-record`), `enum-` enum,
+  `uc-` use case, `us-` user story.
 - Ids are unique across the repository, and **never changed after they are written**, even when the
   element is renamed. `miserable-stamp` adds missing ids.
 - Use cases and user stories name the requirements they realise with `// from: SR-20, SR-21` in the

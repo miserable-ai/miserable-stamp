@@ -121,3 +121,68 @@ def test_kebab_case(name: str, kebab: str) -> None:
 def test_crlf_is_preserved() -> None:
     after = stamp_cml("BoundedContext A {\r\n}\r\n", set())
     assert after == "// id: ctx-a\r\nBoundedContext A {\r\n}\r\n"
+
+
+def test_a_repository_in_an_aggregate_root_gets_a_repo_id() -> None:
+    """Context Mapper wants a repository's name to end in Repository; the id leaves the suffix
+    out, so it names what the repository stores."""
+    model = (
+        "Aggregate Accounts {\n"
+        "  Entity LandingRecord {\n"
+        "    aggregateRoot\n"
+        "    Repository LandingRecordRepository {\n"
+        "      @LandingRecord find(String number);\n"
+        "    }\n"
+        "  }\n"
+        "}\n"
+    )
+    after = stamp_cml(model, set())
+    assert inserted(model, after) == [
+        "// id: agg-accounts\n",
+        "  // id: ent-landing-record\n",
+        "    // id: repo-landing-record\n",
+    ]
+    assert stamp_cml(after, existing_ids(after)) == after
+
+
+@pytest.mark.parametrize(
+    ("name", "stamped"),
+    [("Repository", "repo-repository"), ("Accounts", "repo-accounts")],
+)
+def test_a_repository_name_without_the_suffix_is_kept_whole(name: str, stamped: str) -> None:
+    after = stamp_cml(f"Repository {name} {{\n}}\n", set())
+    assert after.startswith(f"// id: {stamped}\n")
+
+
+def test_a_block_comment_opener_inside_a_line_comment_opens_nothing() -> None:
+    model = "// see /* the old model\nBoundedContext A {\n}\n"
+    assert stamp_cml(model, set()) == (
+        "// see /* the old model\n// id: ctx-a\nBoundedContext A {\n}\n"
+    )
+
+
+def test_a_block_comment_opener_inside_a_string_opens_nothing() -> None:
+    model = (
+        "BoundedContext A {\n"
+        '  domainVisionStatement = "paths like src/* are read"\n'
+        "  Aggregate B {\n"
+        "  }\n"
+        "}\n"
+    )
+    after = stamp_cml(model, set())
+    assert inserted(model, after) == ["// id: ctx-a\n", "  // id: agg-b\n"]
+
+
+def test_declarations_inside_block_comments_are_not_stamped() -> None:
+    model = (
+        "/* BoundedContext Hidden {\n"
+        "BoundedContext AlsoHidden {\n"
+        "*/\n"
+        "/* one */ /* two\n"
+        "BoundedContext StillHidden\n"
+        "*/\n"
+        "BoundedContext A { /* a trailing comment\n"
+        "}  */\n"
+    )
+    after = stamp_cml(model, set())
+    assert inserted(model, after) == ["// id: ctx-a\n"]
