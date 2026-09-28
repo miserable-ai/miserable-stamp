@@ -2,7 +2,8 @@
 
 Meant to run as a pre-commit hook. It prints each file it changed and exits 1 when it changed any,
 so the commit stops and the stamped files can be reviewed and staged. Files of other types are
-ignored.
+ignored. A directory stands for every file under it, outside hidden directories; a path that does
+not exist is refused with exit code 2, before anything is stamped.
 """
 
 import random
@@ -20,6 +21,12 @@ from miserable_stamp.sdoc import stamp_sdoc
 
 def main(paths: Sequence[str], rng: random.Random | None = None) -> int:
     rng = rng or random.SystemRandom()
+    missing = [p for p in paths if not Path(p).exists()]
+    if missing:
+        for name in missing:
+            print(f"miserable-stamp: no such file or directory: {name}", file=sys.stderr)
+        return 2
+    paths = _expand(paths)
     model_ids = _model_ids([Path(p) for p in paths])
     deployment = _Deployment([Path(p) for p in paths])
     changed = 0
@@ -36,6 +43,21 @@ def main(paths: Sequence[str], rng: random.Random | None = None) -> int:
             print(f"stamped {name}")
             changed += 1
     return 1 if changed else 0
+
+
+def _expand(paths: Sequence[str]) -> list[str]:
+    """`paths` with each directory replaced by the files under it, outside hidden directories."""
+    out: list[str] = []
+    for name in paths:
+        path = Path(name)
+        if not path.is_dir():
+            out.append(name)
+            continue
+        for child in sorted(path.rglob("*")):
+            hidden = any(part.startswith(".") for part in child.relative_to(path).parts)
+            if child.is_file() and not hidden:
+                out.append(str(child))
+    return out
 
 
 def _stamp(

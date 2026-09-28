@@ -73,3 +73,27 @@ def test_deployment_ids_are_unique_across_the_files_given(tmp_path: Path) -> Non
     text = second.read_text()
     assert '"miserable.id" "dep-lambda-2"' in text
     assert '"miserable.id" "dep-api"' in text
+
+
+def test_a_directory_is_stamped_file_by_file(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    contexts = tmp_path / "contexts"
+    (contexts / "ledger").mkdir(parents=True)
+    first = contexts / "ledger" / "Ledger.cml"
+    first.write_text("BoundedContext Ledger {\n}\n")
+    second = contexts / "Reports.cml"
+    second.write_text("BoundedContext Reports {\n}\n")
+    assert main([str(contexts)]) == 1
+    assert "// id: ctx-ledger" in first.read_text()
+    assert "// id: ctx-reports" in second.read_text()
+    out = capsys.readouterr().out
+    assert str(first) in out
+    assert str(second) in out
+
+
+def test_a_path_that_does_not_exist_is_refused(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert main([str(tmp_path / "missing")]) == 2
+    assert "missing" in capsys.readouterr().err
