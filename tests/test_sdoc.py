@@ -114,3 +114,59 @@ def test_crlf_line_endings_are_preserved() -> None:
     after = stamp_sdoc("[REQUIREMENT]\r\nUID: SR-1\r\n", random.Random(1))
     assert after.split("\r\n")[1].startswith("MID: ")
     assert "\n" not in after.replace("\r\n", "")
+
+
+RISK_DOC = """\
+[HAZARD]
+UID: H-1
+STATEMENT: Missing low-battery warning.
+
+[HAZARDOUS_SITUATION]
+UID: HS-1
+STATEMENT: The clinician is exposed to a missing warning.
+
+[HARM]
+UID: HM-1
+STATEMENT: Delayed treatment of the patient.
+
+[CAUSE]
+UID: CS-1
+STATEMENT: Wrong value: the level is compared in the wrong unit.
+
+[RISK]
+UID: RK-1
+STATEMENT: A flat implant goes unnoticed.
+
+[RCM]
+MID: 44444444444444444444444444444444
+UID: RC-1
+STATEMENT: If the level falls below 20 %, then the system shall raise an alert.
+
+[THREAT]
+UID: TH-1
+STATEMENT: A network attacker can tamper with readings.
+
+[ITEM_CLASS]
+UID: IC-1
+CLASS: C
+
+[RISKS]
+UID: X-1
+"""
+
+
+def test_risk_file_elements_without_a_mid_get_one() -> None:
+    after = stamp_sdoc(RISK_DOC, random.Random(1))
+    lines = after.splitlines(True)
+    added = inserted_lines(RISK_DOC, after)
+    assert [lines[i - 1] for i, _ in added] == [
+        "[HAZARD]\n",
+        "[HAZARDOUS_SITUATION]\n",
+        "[HARM]\n",
+        "[CAUSE]\n",
+        "[RISK]\n",
+        "[THREAT]\n",
+        "[ITEM_CLASS]\n",
+    ]
+    assert all(MID_LINE.match(text) for _, text in added)
+    assert stamp_sdoc(after, random.Random(2)) == after

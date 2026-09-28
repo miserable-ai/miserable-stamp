@@ -1,8 +1,9 @@
 """Stamping MIDs into StrictDoc documents.
 
-Every user requirement, requirement, acceptance criterion and ADR without a `MID:` field gets one
-on the line directly after its element tag. No other line changes. Multi-line field values
-(`>>>` ... `<<<`) are skipped, so a line inside them that looks like a tag is never taken for one.
+Every user requirement, requirement, acceptance criterion, ADR and risk-file element without a
+`MID:` field gets one on the line directly after its element tag. No other line changes.
+Multi-line field values (`>>>` ... `<<<`) are skipped, so a line inside them that looks like a tag
+is never taken for one.
 """
 
 import random
@@ -10,7 +11,10 @@ import re
 
 from miserable_stamp.ids import new_mid
 
-_ELEMENT = re.compile(r"\[(USER_REQUIREMENT|REQUIREMENT|ACCEPTANCE_CRITERION|ADR)\]\s*")
+_ELEMENT = re.compile(
+    r"\[(USER_REQUIREMENT|REQUIREMENT|ACCEPTANCE_CRITERION|ADR"
+    r"|HAZARD|HAZARDOUS_SITUATION|HARM|CAUSE|RISK|RCM|THREAT|ITEM_CLASS)\]\s*"
+)
 _MID_FIELD = re.compile(r"MID:\s*(\S+)\s*")
 _BLOCK_START = re.compile(r"[A-Z_]+:\s*>>>\s*")
 _BLOCK_END = "<<<"
