@@ -1,10 +1,11 @@
 """Stamping `// id:` comments into Context Mapper (CML) models.
 
 Every declaration of a Domain, Subdomain, BoundedContext, Aggregate, Entity, ValueObject,
-DomainEvent, CommandEvent, Service, enum, UseCase or UserStory needs `// id: <id>` in the unbroken
-run of `//` lines directly above it. Missing ids are inserted directly above the declaration, as
-`<prefix>-<kebab-case name>`, with `-2`, `-3`, ... appended when that id is already taken. Existing
-ids are never changed.
+DomainEvent, CommandEvent, Service, Repository, enum, UseCase or UserStory needs `// id: <id>` in
+the unbroken run of `//` lines directly above it. Missing ids are inserted directly above the
+declaration, as `<prefix>-<kebab-case name>`, with `-2`, `-3`, ... appended when that id is already
+taken. A repository's name ends in `Repository`, which its id leaves out: `LandingRecordRepository`
+gets `repo-landing-record`. Existing ids are never changed.
 """
 
 import re
@@ -19,11 +20,13 @@ PREFIXES = {
     "DomainEvent": "ev",
     "CommandEvent": "cmd",
     "Service": "svc",
+    "Repository": "repo",
     "enum": "enum",
     "UseCase": "uc",
     "UserStory": "us",
 }
 
+_SUFFIXES = {"Repository": "Repository"}  # a kind whose names end in a word the id leaves out
 _DECLARATION = re.compile(r"([ \t]*)(" + "|".join(PREFIXES) + r")[ \t]+([A-Za-z_][A-Za-z0-9_]*)\b")
 _ID_LINE = re.compile(r"[ \t]*//\s*id:\s*(\S+)\s*")
 _LINE_COMMENT = re.compile(r"[ \t]*//.*")
@@ -62,10 +65,16 @@ def stamp_cml(text: str, taken: set[str]) -> str:
         if match is None or _has_id_above(bare, index):
             continue
         indent, keyword, name = match.groups()
+        name = _without_suffix(name, _SUFFIXES.get(keyword, ""))
         inserts.append((index, f"{indent}// id: {_new_id(PREFIXES[keyword], name, taken)}"))
     for index, id_line in reversed(inserts):
         lines.insert(index, id_line + newline)
     return "".join(lines)
+
+
+def _without_suffix(name: str, suffix: str) -> str:
+    """`name` less `suffix` at its end, unless nothing else would be left."""
+    return name[: -len(suffix)] if suffix and name.endswith(suffix) and name != suffix else name
 
 
 def _has_id_above(lines: list[str], index: int) -> bool:

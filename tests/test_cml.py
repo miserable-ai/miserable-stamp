@@ -121,3 +121,34 @@ def test_kebab_case(name: str, kebab: str) -> None:
 def test_crlf_is_preserved() -> None:
     after = stamp_cml("BoundedContext A {\r\n}\r\n", set())
     assert after == "// id: ctx-a\r\nBoundedContext A {\r\n}\r\n"
+
+
+def test_a_repository_in_an_aggregate_root_gets_a_repo_id() -> None:
+    """Context Mapper wants a repository's name to end in Repository; the id leaves the suffix
+    out, so it names what the repository stores."""
+    model = (
+        "Aggregate Accounts {\n"
+        "  Entity LandingRecord {\n"
+        "    aggregateRoot\n"
+        "    Repository LandingRecordRepository {\n"
+        "      @LandingRecord find(String number);\n"
+        "    }\n"
+        "  }\n"
+        "}\n"
+    )
+    after = stamp_cml(model, set())
+    assert inserted(model, after) == [
+        "// id: agg-accounts\n",
+        "  // id: ent-landing-record\n",
+        "    // id: repo-landing-record\n",
+    ]
+    assert stamp_cml(after, existing_ids(after)) == after
+
+
+@pytest.mark.parametrize(
+    ("name", "stamped"),
+    [("Repository", "repo-repository"), ("Accounts", "repo-accounts")],
+)
+def test_a_repository_name_without_the_suffix_is_kept_whole(name: str, stamped: str) -> None:
+    after = stamp_cml(f"Repository {name} {{\n}}\n", set())
+    assert after.startswith(f"// id: {stamped}\n")
