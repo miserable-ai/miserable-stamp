@@ -26,7 +26,7 @@ Add it to your repository's `.pre-commit-config.yaml`:
 ```yaml
 repos:
   - repo: https://github.com/miserable-ai/miserable-stamp
-    rev: v0.3.0
+    rev: v0.4.0
     hooks:
       - id: miserable-stamp
 ```
@@ -37,7 +37,7 @@ and commit again. Running it twice changes nothing.
 You can also run it by hand:
 
 ```sh
-uvx --from git+https://github.com/miserable-ai/miserable-stamp@v0.3.0 miserable-stamp path/to/file.py
+uvx --from git+https://github.com/miserable-ai/miserable-stamp@v0.4.0 miserable-stamp path/to/file.py
 ```
 
 The hook is a convenience. If a commit reaches miserable without ids, miserable adds them for you
