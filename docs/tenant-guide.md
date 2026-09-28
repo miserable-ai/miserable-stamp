@@ -103,8 +103,8 @@ resource "aws_lambda_function" "monitoring" {
 Every user requirement, software requirement, acceptance criterion, ADR and risk-file element
 (hazard, hazardous situation, harm, cause, risk, risk control measure, threat, item class) carries a
 `MID:` field of 32 lower-case hex characters, directly after its element tag. The MID is the
-element's identity; the UID (`SR-20`) is a readable name that may change. `miserable-stamp` adds missing MIDs. **Never edit or
-copy a `MID:` line.**
+element's identity; the UID (`SR-20`) is a readable name that may change. `miserable-stamp` adds
+missing MIDs. **Never edit or copy a `MID:` line.**
 
 ## Model ids (Context Mapper)
 
