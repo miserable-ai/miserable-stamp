@@ -5,7 +5,8 @@ DomainEvent, CommandEvent, Service, Repository, enum, UseCase or UserStory needs
 the unbroken run of `//` lines directly above it. Missing ids are inserted directly above the
 declaration, as `<prefix>-<kebab-case name>`, with `-2`, `-3`, ... appended when that id is already
 taken. A repository's name ends in `Repository`, which its id leaves out: `LandingRecordRepository`
-gets `repo-landing-record`. Existing ids are never changed.
+gets `repo-landing-record`. Existing ids are never changed. Declarations inside `/* */` comments are
+not stamped; a `/*` inside a `//` comment or a string opens no comment.
 """
 
 import re
@@ -55,11 +56,9 @@ def stamp_cml(text: str, taken: set[str]) -> str:
     inserts: list[tuple[int, str]] = []
     in_block = False
     for index, line in enumerate(bare):
-        if in_block:
-            in_block = "*/" not in line
-            continue
-        if "/*" in line and "*/" not in line.split("/*", 1)[1]:
-            in_block = True
+        starts_in_block = in_block
+        in_block = _in_block_after(line, in_block)
+        if starts_in_block:
             continue
         match = _DECLARATION.match(line)
         if match is None or _has_id_above(bare, index):
@@ -75,6 +74,34 @@ def stamp_cml(text: str, taken: set[str]) -> str:
 def _without_suffix(name: str, suffix: str) -> str:
     """`name` less `suffix` at its end, unless nothing else would be left."""
     return name[: -len(suffix)] if suffix and name.endswith(suffix) and name != suffix else name
+
+
+def _in_block_after(line: str, in_block: bool) -> bool:
+    """Whether a `/* */` comment is still open after `line`, given whether one was open before it.
+    A `/*` inside a `//` comment or a quoted string opens nothing."""
+    i, quote = 0, ""
+    while i < len(line):
+        if in_block:
+            end = line.find("*/", i)
+            if end < 0:
+                return True
+            in_block, i = False, end + 2
+            continue
+        char = line[i]
+        if quote:
+            if char == "\\":
+                i += 1
+            elif char == quote:
+                quote = ""
+        elif char in "\"'":
+            quote = char
+        elif line.startswith("//", i):
+            return False
+        elif line.startswith("/*", i):
+            in_block, i = True, i + 2
+            continue
+        i += 1
+    return in_block
 
 
 def _has_id_above(lines: list[str], index: int) -> bool:

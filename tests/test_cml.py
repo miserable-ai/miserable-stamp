@@ -152,3 +152,37 @@ def test_a_repository_in_an_aggregate_root_gets_a_repo_id() -> None:
 def test_a_repository_name_without_the_suffix_is_kept_whole(name: str, stamped: str) -> None:
     after = stamp_cml(f"Repository {name} {{\n}}\n", set())
     assert after.startswith(f"// id: {stamped}\n")
+
+
+def test_a_block_comment_opener_inside_a_line_comment_opens_nothing() -> None:
+    model = "// see /* the old model\nBoundedContext A {\n}\n"
+    assert stamp_cml(model, set()) == (
+        "// see /* the old model\n// id: ctx-a\nBoundedContext A {\n}\n"
+    )
+
+
+def test_a_block_comment_opener_inside_a_string_opens_nothing() -> None:
+    model = (
+        "BoundedContext A {\n"
+        '  domainVisionStatement = "paths like src/* are read"\n'
+        "  Aggregate B {\n"
+        "  }\n"
+        "}\n"
+    )
+    after = stamp_cml(model, set())
+    assert inserted(model, after) == ["// id: ctx-a\n", "  // id: agg-b\n"]
+
+
+def test_declarations_inside_block_comments_are_not_stamped() -> None:
+    model = (
+        "/* BoundedContext Hidden {\n"
+        "BoundedContext AlsoHidden {\n"
+        "*/\n"
+        "/* one */ /* two\n"
+        "BoundedContext StillHidden\n"
+        "*/\n"
+        "BoundedContext A { /* a trailing comment\n"
+        "}  */\n"
+    )
+    after = stamp_cml(model, set())
+    assert inserted(model, after) == ["// id: ctx-a\n"]
