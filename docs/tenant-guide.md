@@ -18,6 +18,7 @@ declaration: a blank line ends the run, and a comment inside a body never counts
 | TypeScript | `.ts`, `.tsx`, `.mts`, `.cts` | JSDoc `/** */` above the declaration, above `export` when it is exported, and above a method's decorators; a test call only by a JSDoc block | function and class declarations and overload signatures, methods and a class's overload signatures, exported `const` arrow functions, and `it(...)` / `test(...)` calls with a callback in tests, also as `.only`, `.skip` and `.each` |
 | Swift | `.swift` | a run of `///` lines, or one `/** */` block, above the declaration and its attributes | `func`, `class`, `struct`, `enum`, `protocol`, members of an `extension` |
 | Terraform | `.tf`, `.tftest.hcl` | a run of `#` or `//` lines above the block | top-level `resource`, `module` and `data` blocks; `run` blocks in `.tftest.hcl` files |
+| C | `.c`, `.h` | a `/** */` or `/* */` block, or a run of `//` lines, above the definition, or above the `typedef` holding a type | function definitions, and `struct`, `union` and `enum` definitions with a body, at file scope (also inside `#if` blocks and `extern "C"`); not prototypes. A definition the parser cannot read, often because of a macro it cannot expand, gets no id |
 
 The markers:
 
@@ -96,6 +97,18 @@ Terraform:
 # @model(dep-monitoring-api, role=Implements)
 # @id c-7f3a9k2m1q
 resource "aws_lambda_function" "monitoring" {
+```
+
+C:
+
+```c
+/**
+ * Raises the low-battery alert.
+ * @relation(SR-20, role=Implements)
+ * @id c-7f3a9k2m1q
+ */
+int check_battery(int level)
+{
 ```
 
 ## Specification ids (StrictDoc)
