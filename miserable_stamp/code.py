@@ -8,7 +8,9 @@ comment style: after a `///`, `//` or `#` line comes another such line; inside a
 comes a line with the block's leading `*`. When the block closes on the marker's line, the closing
 `*/` moves to the end of the new line. Files with syntax errors are left untouched: a node reachable
 through the parse tree's children is an ERROR node, or a MISSING node in every language but Swift,
-whose grammar adds visible MISSING nodes to valid code.
+whose grammar adds visible MISSING nodes to valid code. C is judged per definition instead: its
+grammar cannot expand macros, so a definition holding an ERROR or MISSING node is left unstamped
+and the file's other definitions are stamped.
 """
 
 import random
@@ -16,6 +18,7 @@ import re
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 
+import tree_sitter_c
 import tree_sitter_hcl
 import tree_sitter_java
 import tree_sitter_kotlin
@@ -45,6 +48,8 @@ class CodeLanguage:
     missing_is_error: bool = True
     # Whether a symbol is documented only by a `/** */` block, not by a run of line comments.
     needs_block: Callable[[Node], bool] = lambda node: False
+    # Whether a syntax error leaves only the symbol holding it unstamped, not the whole file (C).
+    errors_per_symbol: bool = False
 
 
 @dataclass(frozen=True)
@@ -208,6 +213,63 @@ SWIFT = CodeLanguage(
 )
 
 
+# The nodes a C definition at file scope may sit in: preprocessor conditionals and `extern "C"`.
+_C_FILE_SCOPE = frozenset(
+    {
+        "translation_unit",
+        "preproc_if",
+        "preproc_ifdef",
+        "preproc_else",
+        "preproc_elif",
+        "preproc_elifdef",
+        "linkage_specification",
+        "declaration_list",
+    }
+)
+_C_TYPES = frozenset({"struct_specifier", "union_specifier", "enum_specifier"})
+_C_TYPE_HOLDERS = frozenset({"type_definition", "declaration"})
+
+
+def _c_file_scope(node: Node) -> bool:
+    parent = node.parent
+    while parent is not None:
+        if parent.type not in _C_FILE_SCOPE:
+            return False
+        parent = parent.parent
+    return True
+
+
+def _c_symbol(node: Node) -> bool:
+    """A function definition, or a struct, union or enum definition with a body, at file scope
+    (a type also as the type of a typedef or declaration there); never a prototype."""
+    if node.type == "function_definition":
+        return _c_file_scope(node)
+    if node.type not in _C_TYPES or node.child_by_field_name("body") is None:
+        return False
+    holder = node.parent
+    if holder is not None and holder.type in _C_TYPE_HOLDERS:
+        return holder.child_by_field_name("type") == node and _c_file_scope(holder)
+    return _c_file_scope(node)
+
+
+def _c_anchor(node: Node) -> Node:
+    """A type's documentation sits above the typedef or declaration holding it."""
+    holder = node.parent
+    if node.type in _C_TYPES and holder is not None and holder.type in _C_TYPE_HOLDERS:
+        return holder
+    return node
+
+
+C = CodeLanguage(
+    name="c",
+    parser=Parser(Language(tree_sitter_c.language())),
+    comments=frozenset({"comment"}),
+    is_symbol=_c_symbol,
+    anchor=_c_anchor,
+    errors_per_symbol=True,
+)
+
+
 def _hcl_blocks(*kinds: str) -> Callable[[Node], bool]:
     """Top-level blocks whose type is one of `kinds`."""
     wanted = frozenset(kinds)
@@ -245,6 +307,8 @@ _SUFFIXES = {
     ".tftest.hcl": TERRAFORM_TEST,
     ".tf": HCL,
     ".swift": SWIFT,
+    ".c": C,
+    ".h": C,
     ".ts": TYPESCRIPT,
     ".mts": TYPESCRIPT,
     ".cts": TYPESCRIPT,
@@ -279,7 +343,7 @@ def _parses(root: Node, language: CodeLanguage) -> bool:
 def stamp_code(text: str, language: CodeLanguage, rng: random.Random) -> str:
     src = text.encode("utf-8")
     root = language.parser.parse(src).root_node
-    if not _parses(root, language):
+    if not language.errors_per_symbol and not _parses(root, language):
         return text
     comments = sorted(
         (n for n in _walk(root) if n.type in language.comments), key=lambda n: n.start_byte
@@ -287,6 +351,8 @@ def stamp_code(text: str, language: CodeLanguage, rng: random.Random) -> str:
     anchors: dict[int, bool] = {}
     for node in _walk(root):
         if language.is_symbol(node):
+            if language.errors_per_symbol and not _parses(language.anchor(node), language):
+                continue
             start = language.anchor(node).start_byte
             anchors[start] = anchors.get(start, False) or language.needs_block(node)
     edits = {
