@@ -13,6 +13,29 @@ ID = re.compile(r"@id (c-[0-9a-hjkmnp-tv-z]{10})")
 # One sample per language: three marked symbols, one of them already stamped, plus an unmarked
 # one. The markers never share a line with a closing `*/`, so stamping only adds lines.
 SAMPLES = {
+    "battery.c": """\
+#include "battery.h"
+
+/**
+ * @relation(SR-1, role=Implements)
+ * @id c-0000000000
+ */
+int a(void) { return 1; }
+
+/**
+ * Two markers.
+ * @relation(SR-2, role=Implements)
+ * @model(svc-b, role=Implements)
+ */
+static int b(int x) { return x; }
+
+/**
+ * @model(vo-battery, role=Implements)
+ */
+struct battery { int level; };
+
+int d(void) { return 0; }
+""",
     "Battery.kt": """\
 package ai.example
 

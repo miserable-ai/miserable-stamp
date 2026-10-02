@@ -14,6 +14,7 @@ file.
 | Java (`.java`) | the same in the Javadoc `/** */` above every class, interface, enum, record, constructor or method |
 | TypeScript (`.ts`, `.tsx`, `.mts`, `.cts`) | the same in the JSDoc `/** */` above every function or class declaration, method, exported `const` arrow function, and `it(...)` or `test(...)` call; above `export` when the declaration is exported |
 | Swift (`.swift`) | the same in the `///` lines or `/** */` block above every `func`, `class`, `struct`, `enum` or `protocol`, and every member of an `extension` |
+| C (`.c`, `.h`) | the same in the `/** */` block or `//` lines above every function definition, and every `struct`, `union` or `enum` with a body, at file scope (also inside `#if` blocks and `extern "C"`); a `typedef`'s documentation sits above the `typedef`. Prototypes are not stamped, and a definition the grammar cannot parse (an unexpanded macro, say) is skipped while the rest of the file is stamped |
 | Terraform (`.tf`, `.tftest.hcl`) | the same in the `#` or `//` comment lines above every top-level `resource`, `module` or `data` block, and every `run` block of a `.tftest.hcl` file |
 | StrictDoc (`.sdoc`) | `MID: <32 hex characters>` directly after the tag of every `USER_REQUIREMENT`, `REQUIREMENT`, `ACCEPTANCE_CRITERION` and `ADR`, and every risk-file element (`HAZARD`, `HAZARDOUS_SITUATION`, `HARM`, `CAUSE`, `RISK`, `RCM`, `THREAT`, `ITEM_CLASS`), without one |
 | Context Mapper (`.cml`) | `// id: <prefix>-<name>` directly above every domain, subdomain, bounded context, aggregate, entity, value object, event, service, repository, enum, use case and user story without one, unique across the repository's models |
@@ -26,7 +27,7 @@ Add it to your repository's `.pre-commit-config.yaml`:
 ```yaml
 repos:
   - repo: https://github.com/miserable-ai/miserable-stamp
-    rev: v0.4.0
+    rev: v0.6.0
     hooks:
       - id: miserable-stamp
 ```
