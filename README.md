@@ -49,6 +49,12 @@ forks, so a pull request from a fork needs the ids committed before it is merged
 
 [docs/tenant-guide.md](docs/tenant-guide.md) describes the markers and ids miserable reads.
 
+## Work in progress
+
+To show miserable unfinished work without opening a pull request, push a snapshot of your working
+tree to `wip/<your login>/<your branch>`. The tenant guide has a `git wip` recipe for it; see
+[Work in progress: `git wip`](docs/tenant-guide.md#work-in-progress-git-wip).
+
 ## Development
 
 ```sh
