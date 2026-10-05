@@ -38,7 +38,7 @@ and commit again. Running it twice changes nothing.
 You can also run it by hand:
 
 ```sh
-uvx --from git+https://github.com/miserable-ai/miserable-stamp@v0.4.0 miserable-stamp path/to/file.py
+uvx --from git+https://github.com/miserable-ai/miserable-stamp@v0.6.0 miserable-stamp path/to/file.py
 ```
 
 The hook is a convenience. If a commit reaches miserable without ids, miserable adds them for you
@@ -48,6 +48,12 @@ forks, so a pull request from a fork needs the ids committed before it is merged
 ## Formats
 
 [docs/tenant-guide.md](docs/tenant-guide.md) describes the markers and ids miserable reads.
+
+## Work in progress
+
+To show miserable unfinished work without opening a pull request, push a snapshot of your working
+tree to `wip/<your login>/<your branch>`. The tenant guide has a `git wip` recipe for it; see
+[Work in progress: `git wip`](docs/tenant-guide.md#work-in-progress-git-wip).
 
 ## Development
 
