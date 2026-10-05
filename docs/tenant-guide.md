@@ -2,7 +2,7 @@
 
 This guide describes the text miserable reads from your repositories. Everything miserable does with
 it happens in miserable's cloud. Your repositories need nothing but these formats, optionally the
-`miserable-stamp` hook, and in code repositories two CI artifacts (see the last section).
+`miserable-stamp` hook, and in code repositories two CI artifacts (see "Test results and coverage").
 
 ## Code markers
 
@@ -245,3 +245,97 @@ artifact):
   `rootDir` at the repository's root. Its default names cannot be read.
 - A `test.each` case matches its test by the title as written, placeholders (`%i`, `$level`)
   included.
+
+## Work in progress: `git wip`
+
+A **work in progress** (WIP) is a branch you push to show miserable your unfinished work without
+opening a pull request: `wip/<your login>/<your branch>`, where the login is your GitHub login and
+the branch is the one you have checked out (not the default branch). miserable reads it like any
+other branch, lists it as yours and shows it to you first, and posts no checks on it. Open a pull
+request from it and it becomes an ordinary branch, judged and checked like any other.
+
+The recipe below pushes a snapshot of your working tree, staged or not and untracked files
+included, without committing on your branch or touching what you have staged. Save it as a file,
+for example `~/.config/git/wip.sh`:
+
+```sh
+# git_wip [--delete]: push the working tree to wip/<login>/<branch>, or delete that branch.
+git_wip() (
+  branch=$(git symbolic-ref --quiet --short HEAD) || {
+    echo "git wip: detached HEAD; check out a branch first" >&2; exit 1; }
+  login=$(git config miserable.login || gh api user -q .login) && [ -n "$login" ] || {
+    echo "git wip: set your GitHub login with git config miserable.login" >&2; exit 1; }
+  ref="refs/heads/wip/$login/$branch"
+  if [ "${1-}" = "--delete" ]; then
+    git push origin --delete "$ref"; exit
+  fi
+  cd "$(git rev-parse --show-toplevel)" || exit 1
+
+  # Stamp missing ids in place, in every tracked or untracked file that is not gitignored.
+  # miserable-stamp exits 1 when it stamped something, which xargs reports as 123.
+  git ls-files -z -co --exclude-standard |
+    xargs -0 -r sh -c 'for f; do [ -f "$f" ] && [ ! -L "$f" ] && printf "%s\0" "$f"; done' sh |
+    xargs -0 -r miserable-stamp
+  case $? in
+    0 | 1 | 123) ;;
+    *) echo "git wip: miserable-stamp failed; nothing pushed" >&2; exit 1 ;;
+  esac
+
+  # Snapshot through a temporary index, so your own index stays as it is.
+  untracked=$(git ls-files -o --exclude-standard)
+  GIT_INDEX_FILE="$(git rev-parse --absolute-git-dir)/wip-index"
+  export GIT_INDEX_FILE
+  rm -f "$GIT_INDEX_FILE"
+  git read-tree HEAD && git add -A && tree=$(git write-tree) &&
+    commit=$(git commit-tree -p HEAD -m "wip: $branch" "$tree")
+  status=$?
+  rm -f "$GIT_INDEX_FILE"
+  unset GIT_INDEX_FILE
+  [ "$status" -eq 0 ] || { echo "git wip: snapshot failed; nothing pushed" >&2; exit 1; }
+
+  if [ -n "$untracked" ]; then
+    echo "git wip: these untracked files are included; anything not gitignored is pushed (.env too):"
+    printf '%s\n' "$untracked" | sed 's/^/  /'
+  fi
+  git push -f origin "$commit:$ref" && echo "git wip: pushed $branch to wip/$login/$branch"
+)
+```
+
+Then make it a git command:
+
+```sh
+git config --global alias.wip '!f() { . ~/.config/git/wip.sh; git_wip "$@"; }; f'
+```
+
+- `git wip` stamps missing ids in your working tree, in place, as the hook would, and pushes the
+  snapshot. Run it as often as you like: each run replaces the branch.
+- `git wip --delete` deletes your WIP branch (the same as
+  `git push origin --delete wip/<login>/<branch>`).
+- Your login comes from `git config miserable.login`, or else from the GitHub CLI
+  (`gh api user -q .login`).
+
+Notes:
+
+- Your CI need not run on WIP branches. To skip it, add `branches-ignore: ['wip/**']` under the
+  `push` trigger of your workflows.
+- If you protect branches with rulesets, they must allow pushing and force-pushing to `wip/**`.
+- Never name a feature branch `wip/…`: that prefix is what makes a branch a WIP.
+- Anyone who can read the repository can read your WIP, as with any branch on GitHub.
+
+### Pin, then flip
+
+A dependent repository pins its upstream in `trace.lock`. While you develop a change that spans
+repositories, pin the upstream's branch of the same name instead of a release:
+
+```yaml
+upstream:
+  spec: branch:add-dose-limits
+```
+
+When you push your WIP of the dependent, the pin `branch:add-dose-limits` prefers your own WIP of
+the upstream, `wip/<your login>/add-dose-limits`, and falls back to `add-dose-limits` when you have
+none. So your WIPs of several repositories are judged together, and pushing or deleting the
+upstream WIP later re-evaluates the dependent ones. `trace.lock` itself is never rewritten.
+
+At landing, merge and release the upstream first, then flip the pin to its release tag (for example
+`spec: srs-v1.4.0`) in the dependent's pull request: on a default branch, the pin is a release tag.
