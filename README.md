@@ -38,7 +38,7 @@ and commit again. Running it twice changes nothing.
 You can also run it by hand:
 
 ```sh
-uvx --from git+https://github.com/miserable-ai/miserable-stamp@v0.4.0 miserable-stamp path/to/file.py
+uvx --from git+https://github.com/miserable-ai/miserable-stamp@v0.6.0 miserable-stamp path/to/file.py
 ```
 
 The hook is a convenience. If a commit reaches miserable without ids, miserable adds them for you
